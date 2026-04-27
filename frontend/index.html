@@ -33,6 +33,14 @@
             <label for="sell-price">Sell Price (per share)</label>
             <input type="number" id="sell-price" min="0" step="0.01" placeholder="2750.00" required />
           </div>
+          <div class="field">
+            <label for="trade-type">Trade Type</label>
+            <select id="trade-type">
+              <option value="delivery">Delivery</option>
+              <option value="intraday">Intraday</option>
+              <option value="options">Options (F&amp;O)</option>
+            </select>
+          </div>
         </div>
         <button type="submit" class="btn-primary">Add Entry</button>
         <span id="form-error" class="error-text"></span>
@@ -50,13 +58,16 @@
             <tr>
               <th>#</th>
               <th>Stock</th>
+              <th>Type</th>
               <th>Qty</th>
               <th>Buy Price</th>
               <th>Sell Price</th>
               <th>Buy Total</th>
               <th>Sell Total</th>
-              <th>P&amp;L</th>
-              <th>P&amp;L %</th>
+              <th>Gross P&amp;L</th>
+              <th>Charges</th>
+              <th>Net P&amp;L</th>
+              <th>Net %</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -78,7 +89,15 @@
           <span id="total-returned" class="value">&#8377; 0.00</span>
         </div>
         <div class="summary-item">
-          <span class="label">Net Profit / Loss</span>
+          <span class="label">Total Charges</span>
+          <span id="total-charges" class="value">&#8377; 0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Gross P&amp;L</span>
+          <span id="gross-pl" class="value">&#8377; 0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Net P&amp;L (after charges)</span>
           <span id="net-pl" class="value">&#8377; 0.00</span>
         </div>
         <div class="summary-item">
