@@ -5,7 +5,12 @@ const stockSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true, uppercase: true },
     quantity: { type: Number, required: true, min: 1 },
     buyPrice: { type: Number, required: true, min: 0 },
-    sellPrice: { type: Number, required: true, min: 0 }
+    sellPrice: { type: Number, required: true, min: 0 },
+    tradeType: {
+      type: String,
+      enum: ['delivery', 'intraday', 'options'],
+      default: 'delivery'
+    }
   },
   {
     timestamps: true,

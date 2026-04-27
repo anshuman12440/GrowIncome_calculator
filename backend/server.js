@@ -4,6 +4,9 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const connectDB = require('./db');
 const Stock = require('./models/Stock');
+const calculateCharges = require('./utils/calculateCharges');
+
+const VALID_TRADE_TYPES = ['delivery', 'intraday', 'options'];
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,19 +19,22 @@ connectDB();
 function calculateRow(stock) {
   const buyTotal = stock.quantity * stock.buyPrice;
   const sellTotal = stock.quantity * stock.sellPrice;
-  const profitLoss = sellTotal - buyTotal;
-  const profitLossPct = buyTotal > 0 ? (profitLoss / buyTotal) * 100 : 0;
+  const tradeType = stock.tradeType || 'delivery';
+  const charges = calculateCharges(buyTotal, sellTotal, tradeType);
+
   return {
     id: stock._id.toString(),
     name: stock.name,
     quantity: stock.quantity,
     buyPrice: stock.buyPrice,
     sellPrice: stock.sellPrice,
+    tradeType,
     createdAt: stock.createdAt,
     buyTotal,
     sellTotal,
-    profitLoss,
-    profitLossPct
+    profitLoss: charges.grossPL,
+    profitLossPct: buyTotal > 0 ? (charges.grossPL / buyTotal) * 100 : 0,
+    charges
   };
 }
 
@@ -39,12 +45,21 @@ app.get('/api/stocks', async (req, res) => {
 
     const totalInvested = stocks.reduce((sum, s) => sum + s.buyTotal, 0);
     const totalReturned = stocks.reduce((sum, s) => sum + s.sellTotal, 0);
-    const netProfitLoss = totalReturned - totalInvested;
+    const totalCharges = stocks.reduce((sum, s) => sum + s.charges.total, 0);
+    const grossProfitLoss = totalReturned - totalInvested;
+    const netProfitLoss = grossProfitLoss - totalCharges;
     const overallReturnPct = totalInvested > 0 ? (netProfitLoss / totalInvested) * 100 : 0;
 
     res.json({
       stocks,
-      summary: { totalInvested, totalReturned, netProfitLoss, overallReturnPct }
+      summary: {
+        totalInvested,
+        totalReturned,
+        totalCharges: Math.round(totalCharges * 100) / 100,
+        grossProfitLoss,
+        netProfitLoss: Math.round(netProfitLoss * 100) / 100,
+        overallReturnPct: Math.round(overallReturnPct * 100) / 100
+      }
     });
   } catch (err) {
     console.error('GET /api/stocks failed:', err);
@@ -53,7 +68,7 @@ app.get('/api/stocks', async (req, res) => {
 });
 
 app.post('/api/stocks', async (req, res) => {
-  const { name, quantity, buyPrice, sellPrice } = req.body;
+  const { name, quantity, buyPrice, sellPrice, tradeType } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
     return res.status(400).json({ error: 'Stock name is required' });
@@ -70,13 +85,18 @@ app.post('/api/stocks', async (req, res) => {
   if (!Number.isFinite(sp) || sp < 0) {
     return res.status(400).json({ error: 'Sell price must be a non-negative number' });
   }
+  const tt = tradeType || 'delivery';
+  if (!VALID_TRADE_TYPES.includes(tt)) {
+    return res.status(400).json({ error: `tradeType must be one of: ${VALID_TRADE_TYPES.join(', ')}` });
+  }
 
   try {
     const doc = await Stock.create({
       name: name.trim(),
       quantity: qty,
       buyPrice: bp,
-      sellPrice: sp
+      sellPrice: sp,
+      tradeType: tt
     });
     res.status(201).json(calculateRow(doc));
   } catch (err) {

@@ -9,8 +9,16 @@ const apiStatus = document.getElementById("api-status");
 
 const totalInvestedEl = document.getElementById("total-invested");
 const totalReturnedEl = document.getElementById("total-returned");
+const totalChargesEl = document.getElementById("total-charges");
+const grossPlEl = document.getElementById("gross-pl");
 const netPlEl = document.getElementById("net-pl");
 const overallReturnEl = document.getElementById("overall-return");
+
+const TRADE_LABELS = {
+  delivery: "Delivery",
+  intraday: "Intraday",
+  options: "Options"
+};
 
 const INR = (n) =>
   "₹ " +
@@ -38,6 +46,19 @@ async function fetchStocks() {
   }
 }
 
+function chargesTooltip(c) {
+  return [
+    `Brokerage: ${INR(c.brokerage)}`,
+    `STT: ${INR(c.stt)}`,
+    `Exchange: ${INR(c.exchange)}`,
+    `SEBI: ${INR(c.sebi)}`,
+    `Stamp Duty: ${INR(c.stampDuty)}`,
+    `GST: ${INR(c.gst)}`,
+    `——————————`,
+    `Total: ${INR(c.total)}`
+  ].join("\n");
+}
+
 function render({ stocks, summary }) {
   tbody.innerHTML = "";
 
@@ -47,18 +68,24 @@ function render({ stocks, summary }) {
     emptyState.style.display = "none";
     stocks.forEach((s, idx) => {
       const tr = document.createElement("tr");
-      const plClass = s.profitLoss >= 0 ? "profit" : "loss";
-      const sign = s.profitLoss >= 0 ? "+" : "";
+      const grossClass = s.profitLoss >= 0 ? "profit" : "loss";
+      const grossSign = s.profitLoss >= 0 ? "+" : "";
+      const netClass = s.charges.netPL >= 0 ? "profit" : "loss";
+      const netSign = s.charges.netPL >= 0 ? "+" : "";
+
       tr.innerHTML = `
         <td>${idx + 1}</td>
         <td><strong>${escapeHtml(s.name)}</strong></td>
+        <td><span class="trade-badge trade-${s.tradeType}">${TRADE_LABELS[s.tradeType] || s.tradeType}</span></td>
         <td>${s.quantity}</td>
         <td>${INR(s.buyPrice)}</td>
         <td>${INR(s.sellPrice)}</td>
         <td>${INR(s.buyTotal)}</td>
         <td>${INR(s.sellTotal)}</td>
-        <td class="${plClass}">${sign}${INR(s.profitLoss)}</td>
-        <td class="${plClass}">${sign}${s.profitLossPct.toFixed(2)}%</td>
+        <td class="${grossClass}">${grossSign}${INR(s.profitLoss)}</td>
+        <td class="charges-cell" title="${escapeHtml(chargesTooltip(s.charges))}">${INR(s.charges.total)}</td>
+        <td class="${netClass}">${netSign}${INR(s.charges.netPL)}</td>
+        <td class="${netClass}">${netSign}${s.charges.netPLPct.toFixed(2)}%</td>
         <td><button class="delete-btn" data-id="${s.id}">Delete</button></td>
       `;
       tbody.appendChild(tr);
@@ -67,13 +94,19 @@ function render({ stocks, summary }) {
 
   totalInvestedEl.textContent = INR(summary.totalInvested);
   totalReturnedEl.textContent = INR(summary.totalReturned);
+  totalChargesEl.textContent = INR(summary.totalCharges);
 
-  const plClass = summary.netProfitLoss >= 0 ? "profit" : "loss";
-  const sign = summary.netProfitLoss >= 0 ? "+" : "";
-  netPlEl.textContent = sign + INR(summary.netProfitLoss);
-  netPlEl.className = "value " + plClass;
-  overallReturnEl.textContent = sign + summary.overallReturnPct.toFixed(2) + "%";
-  overallReturnEl.className = "value " + plClass;
+  const grossClass = summary.grossProfitLoss >= 0 ? "profit" : "loss";
+  const grossSign = summary.grossProfitLoss >= 0 ? "+" : "";
+  grossPlEl.textContent = grossSign + INR(summary.grossProfitLoss);
+  grossPlEl.className = "value " + grossClass;
+
+  const netClass = summary.netProfitLoss >= 0 ? "profit" : "loss";
+  const netSign = summary.netProfitLoss >= 0 ? "+" : "";
+  netPlEl.textContent = netSign + INR(summary.netProfitLoss);
+  netPlEl.className = "value " + netClass;
+  overallReturnEl.textContent = netSign + summary.overallReturnPct.toFixed(2) + "%";
+  overallReturnEl.className = "value " + netClass;
 }
 
 function escapeHtml(str) {
@@ -91,6 +124,7 @@ form.addEventListener("submit", async (e) => {
     quantity: document.getElementById("quantity").value,
     buyPrice: document.getElementById("buy-price").value,
     sellPrice: document.getElementById("sell-price").value,
+    tradeType: document.getElementById("trade-type").value,
   };
 
   try {

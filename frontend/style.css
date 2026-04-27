@@ -87,7 +87,8 @@ main {
   font-weight: 500;
 }
 
-.field input {
+.field input,
+.field select {
   padding: 0.65rem 0.8rem;
   background: var(--bg);
   border: 1px solid var(--border);
@@ -97,9 +98,44 @@ main {
   transition: border-color 0.15s;
 }
 
-.field input:focus {
+.field input:focus,
+.field select:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+.trade-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.trade-delivery {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.trade-intraday {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.trade-options {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.charges-cell {
+  cursor: help;
+  color: var(--muted);
+  border-bottom: 1px dotted var(--muted);
 }
 
 .btn-primary,
