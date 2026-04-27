@@ -1,53 +1,58 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
+const mongoose = require('mongoose');
+const connectDB = require('./db');
+const Stock = require('./models/Stock');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
 
 app.use(cors());
 app.use(express.json());
 
-function readStocks() {
-  if (!fs.existsSync(DATA_FILE)) return [];
-  try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-    return raw.trim() ? JSON.parse(raw) : [];
-  } catch (err) {
-    console.error('Failed to read data file:', err);
-    return [];
-  }
-}
-
-function writeStocks(stocks) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(stocks, null, 2));
-}
+connectDB();
 
 function calculateRow(stock) {
   const buyTotal = stock.quantity * stock.buyPrice;
   const sellTotal = stock.quantity * stock.sellPrice;
   const profitLoss = sellTotal - buyTotal;
   const profitLossPct = buyTotal > 0 ? (profitLoss / buyTotal) * 100 : 0;
-  return { ...stock, buyTotal, sellTotal, profitLoss, profitLossPct };
+  return {
+    id: stock._id.toString(),
+    name: stock.name,
+    quantity: stock.quantity,
+    buyPrice: stock.buyPrice,
+    sellPrice: stock.sellPrice,
+    createdAt: stock.createdAt,
+    buyTotal,
+    sellTotal,
+    profitLoss,
+    profitLossPct
+  };
 }
 
-app.get('/api/stocks', (req, res) => {
-  const stocks = readStocks().map(calculateRow);
+app.get('/api/stocks', async (req, res) => {
+  try {
+    const docs = await Stock.find().sort({ createdAt: 1 });
+    const stocks = docs.map(calculateRow);
 
-  const totalInvested = stocks.reduce((sum, s) => sum + s.buyTotal, 0);
-  const totalReturned = stocks.reduce((sum, s) => sum + s.sellTotal, 0);
-  const netProfitLoss = totalReturned - totalInvested;
-  const overallReturnPct = totalInvested > 0 ? (netProfitLoss / totalInvested) * 100 : 0;
+    const totalInvested = stocks.reduce((sum, s) => sum + s.buyTotal, 0);
+    const totalReturned = stocks.reduce((sum, s) => sum + s.sellTotal, 0);
+    const netProfitLoss = totalReturned - totalInvested;
+    const overallReturnPct = totalInvested > 0 ? (netProfitLoss / totalInvested) * 100 : 0;
 
-  res.json({
-    stocks,
-    summary: { totalInvested, totalReturned, netProfitLoss, overallReturnPct }
-  });
+    res.json({
+      stocks,
+      summary: { totalInvested, totalReturned, netProfitLoss, overallReturnPct }
+    });
+  } catch (err) {
+    console.error('GET /api/stocks failed:', err);
+    res.status(500).json({ error: 'Failed to fetch stocks' });
+  }
 });
 
-app.post('/api/stocks', (req, res) => {
+app.post('/api/stocks', async (req, res) => {
   const { name, quantity, buyPrice, sellPrice } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -66,34 +71,43 @@ app.post('/api/stocks', (req, res) => {
     return res.status(400).json({ error: 'Sell price must be a non-negative number' });
   }
 
-  const stocks = readStocks();
-  const newStock = {
-    id: Date.now().toString(),
-    name: name.trim().toUpperCase(),
-    quantity: qty,
-    buyPrice: bp,
-    sellPrice: sp,
-    createdAt: new Date().toISOString()
-  };
-  stocks.push(newStock);
-  writeStocks(stocks);
-  res.status(201).json(calculateRow(newStock));
-});
-
-app.delete('/api/stocks/:id', (req, res) => {
-  const { id } = req.params;
-  const stocks = readStocks();
-  const filtered = stocks.filter(s => s.id !== id);
-  if (filtered.length === stocks.length) {
-    return res.status(404).json({ error: 'Stock not found' });
+  try {
+    const doc = await Stock.create({
+      name: name.trim(),
+      quantity: qty,
+      buyPrice: bp,
+      sellPrice: sp
+    });
+    res.status(201).json(calculateRow(doc));
+  } catch (err) {
+    console.error('POST /api/stocks failed:', err);
+    res.status(500).json({ error: 'Failed to create stock' });
   }
-  writeStocks(filtered);
-  res.json({ success: true });
 });
 
-app.delete('/api/stocks', (req, res) => {
-  writeStocks([]);
-  res.json({ success: true });
+app.delete('/api/stocks/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: 'Invalid stock id' });
+  }
+  try {
+    const deleted = await Stock.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ error: 'Stock not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/stocks/:id failed:', err);
+    res.status(500).json({ error: 'Failed to delete stock' });
+  }
+});
+
+app.delete('/api/stocks', async (req, res) => {
+  try {
+    await Stock.deleteMany({});
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /api/stocks failed:', err);
+    res.status(500).json({ error: 'Failed to clear stocks' });
+  }
 });
 
 app.get('/', (req, res) => {
