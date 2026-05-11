@@ -9,10 +9,59 @@
 <body>
   <header>
     <h1>Groww Income Calculator</h1>
-    <p class="subtitle">Track your stock buys, sells and net profit/loss</p>
+    <p class="subtitle">Track stock trades plus manual profit/loss adjustments</p>
   </header>
 
   <main>
+    <section class="card summary">
+      <div class="summary-header">
+        <h2>Summary</h2>
+        <button type="button" id="summary-edit" class="edit-btn">Edit</button>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="label">Total Invested</span>
+          <span id="total-invested" class="value">&#8377; 0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Total Returned</span>
+          <span id="total-returned" class="value">&#8377; 0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Total Charges</span>
+          <span id="total-charges" class="value">&#8377; 0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Gross P&amp;L</span>
+          <span id="gross-pl" class="value">&#8377; 0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Net P&amp;L (after charges)</span>
+          <span id="net-pl" class="value">&#8377; 0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Overall Return %</span>
+          <span id="overall-return" class="value">0.00%</span>
+        </div>
+      </div>
+      <form id="summary-form" class="summary-edit-form hidden" autocomplete="off">
+        <div class="form-grid">
+          <div class="field">
+            <label for="summary-gross-pl">Gross P&amp;L</label>
+            <input type="number" id="summary-gross-pl" step="0.01" required />
+          </div>
+          <div class="field">
+            <label for="summary-net-pl">Net P&amp;L</label>
+            <input type="number" id="summary-net-pl" step="0.01" required />
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Save Summary</button>
+        <button type="button" id="summary-reset" class="btn-secondary">Use Calculated</button>
+        <button type="button" id="summary-cancel" class="btn-secondary">Cancel</button>
+        <span id="summary-error" class="error-text"></span>
+      </form>
+    </section>
+
     <section class="card">
       <h2>Add Stock Entry</h2>
       <form id="stock-form" autocomplete="off">
@@ -48,6 +97,30 @@
     </section>
 
     <section class="card">
+      <h2>Add Manual Profit/Loss</h2>
+      <form id="manual-form" autocomplete="off">
+        <input type="hidden" id="manual-id" />
+        <div class="form-grid manual-grid">
+          <div class="field">
+            <label for="manual-name">Label</label>
+            <input type="text" id="manual-name" placeholder="e.g. Dividend, Fee, Bonus" required />
+          </div>
+          <div class="field">
+            <label for="manual-gross-pl">Gross P&amp;L</label>
+            <input type="number" id="manual-gross-pl" step="0.01" placeholder="1000.00 or -500.00" required />
+          </div>
+          <div class="field">
+            <label for="manual-net-pl">Net P&amp;L</label>
+            <input type="number" id="manual-net-pl" step="0.01" placeholder="950.00 or -550.00" required />
+          </div>
+        </div>
+        <button type="submit" id="manual-submit" class="btn-primary">Add Manual Entry</button>
+        <button type="button" id="manual-cancel" class="btn-secondary hidden">Cancel Edit</button>
+        <span id="manual-error" class="error-text"></span>
+      </form>
+    </section>
+
+    <section class="card">
       <div class="table-header">
         <h2>Transactions</h2>
         <button id="clear-all" class="btn-danger" type="button">Clear All</button>
@@ -77,35 +150,6 @@
       </div>
     </section>
 
-    <section class="card summary">
-      <h2>Summary</h2>
-      <div class="summary-grid">
-        <div class="summary-item">
-          <span class="label">Total Invested</span>
-          <span id="total-invested" class="value">&#8377; 0.00</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Total Returned</span>
-          <span id="total-returned" class="value">&#8377; 0.00</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Total Charges</span>
-          <span id="total-charges" class="value">&#8377; 0.00</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Gross P&amp;L</span>
-          <span id="gross-pl" class="value">&#8377; 0.00</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Net P&amp;L (after charges)</span>
-          <span id="net-pl" class="value">&#8377; 0.00</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">Overall Return %</span>
-          <span id="overall-return" class="value">0.00%</span>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer>
